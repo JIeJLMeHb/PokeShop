@@ -1,6 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import PokemonCard from './PokemonCard';
 import { fetchPokemons } from '../services/pokeAPI';
+
+// Функция для генерации фиксированной случайной цены на основе ID
+const generatePrice = (id) => {
+  // Используем детерминированный алгоритм на основе ID
+  const seed = id * 9301 + 49297; // Простые числа для лучшего распределения
+  return (seed % 100) + 50; // Цена от 50 до 149
+};
 
 const PokemonList = ({ searchQuery }) => {
   const [pokemons, setPokemons] = useState([]);
@@ -11,8 +18,16 @@ const PokemonList = ({ searchQuery }) => {
     const loadPokemons = async () => {
       try {
         const data = await fetchPokemons(151);
-        setPokemons(data);
-        setFilteredPokemons(data);
+        
+        // Добавляем фиксированную цену каждому покемону
+        const pokemonsWithFixedPrice = data.map((pokemon, index) => ({
+          ...pokemon,
+          id: index + 1,
+          price: generatePrice(index + 1) // Генерируем фиксированную цену
+        }));
+        
+        setPokemons(pokemonsWithFixedPrice);
+        setFilteredPokemons(pokemonsWithFixedPrice);
       } catch (error) {
         console.error('Error fetching pokemons:', error);
       } finally {
@@ -25,7 +40,7 @@ const PokemonList = ({ searchQuery }) => {
   useEffect(() => {
     if (searchQuery) {
       const filtered = pokemons.filter(pokemon =>
-        pokemon.name.toLowerCase().includes(searchQuery)
+        pokemon.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredPokemons(filtered);
     } else {
@@ -42,11 +57,12 @@ const PokemonList = ({ searchQuery }) => {
           No Pokemon found for "{searchQuery}"
         </div>
       ) : (
-        filteredPokemons.map((pokemon, index) => (
+        filteredPokemons.map((pokemon) => (
           <PokemonCard 
             key={pokemon.name} 
             pokemon={pokemon} 
-            id={index + 1} 
+            id={pokemon.id} 
+            price={pokemon.price} 
           />
         ))
       )}
